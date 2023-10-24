@@ -21,10 +21,6 @@ for x = 1:length(sniff)
     end
 end
 
-sniff = resample(sniff,1,30);
-sniff_smooth = smooth(sniff,25,'sgolay');
-%plot(sniff(1:150000));
-
 %% Correct jumps in Ephys Signal
 for ch = 1:nchannels
     for x = 1:length(ephysx(ch,:))
@@ -32,6 +28,38 @@ for ch = 1:nchannels
             ephysx(ch, x) = ephysx(ch, x) - 65520;
         end
     end
+end
+
+%% Resample Sniff signals to 1khz
+resample_factor = 30;
+
+sniff = resample(sniff, 1, resample_factor);
+sniff_smooth = smooth(sniff, 25, 'sgolay');
+
+%% Find inhalation times
+
+[pks, locs] = findpeaks(sniff_smooth, 'MinPeakProminence', 50);
+
+%% Plot sniff peaks against signal
+
+win_beg = 30000;
+win_end = win_beg + 30000;
+% Find nearest peak to window start and ending
+abs_diff = abs(locs - window);
+[~, end_idx] = min(abs_diff);
+
+plot(sniff_smooth(1:window))
+hold on
+scatter(locs(1:idx), pks(1:idx))
+
+%% Resample Ephys to 1khz
+% Initialize resampled ephys matrix
+N_rs = width(ephysx) / 30;
+ephysx_rs = zeros(16, N_rs);
+
+% Resample each channel in ephys data
+for i = 1:16
+    ephysx_rs(i,:) = resample(ephysx(i,:), 1, resample_factor);
 end
 
 %% Visualize Ephys channels with inhalation times
