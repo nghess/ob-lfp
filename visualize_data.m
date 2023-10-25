@@ -2,7 +2,7 @@
 
 % Define window to plot
 window = 30000;
-win_beg = 1;
+win_beg = 170000;
 win_end = win_beg + window;
 
 % Find nearest peak to window start and ending
@@ -16,7 +16,7 @@ clf
 plot(sniff_smooth(locs(beg_idx):win_end))
 hold on
 scatter(locs(beg_idx:end_idx)-locs(beg_idx), pks(beg_idx:end_idx))
-axis([locs(beg_idx) window min(sniff_smooth) max(sniff_smooth)]); % Scale axes
+axis([0 window min(sniff_smooth) max(sniff_smooth)]); % Scale axes
 
 %% Visualize Ephys channels with inhalation times
 

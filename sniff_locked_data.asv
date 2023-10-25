@@ -1,8 +1,9 @@
 %% Select inhalation times
 
-win = 1024; % Set window size
-N_sniff = 1024;  % Set number of sniffs to look at
-loc_set = locs(5:N_sniff+4); % Pull out N_sniffs starting at idx 2
+win = 512; % Set window size
+N_sniff = 512;  % Set number of sniffs to look at
+beg = 10000;
+loc_set = locs(beg:N_sniff+beg-1); % Pull out N_sniffs starting at idx 5
 
 % Create windows based on locs
 windows = cell(N_sniff, 1);
@@ -14,11 +15,11 @@ for ii = 1:N_sniff
 end
 
 %% Get Ephys activity for each window in each channel
-sniff_activity = zeros(N_sniff, win+1, nchannels);
+sniff_activity = zeros(N_sniff, win, nchannels);
 
 for ii = 1:N_sniff
     for ch = 1:nchannels
-        data = ephysx_rs(ch, windows{ii}(1):windows{ii}(2));
+        data = ephysx_rs(ch, windows{ii}(1):windows{ii}(2)-1);
         
         % Calculate mean and standard deviation
         data_mean = mean(data);
@@ -31,35 +32,60 @@ for ii = 1:N_sniff
 end
 
 % Sort by mean z-score
-sorted_activity = zeros(N_sniff, win+1, nchannels);
+sorted_activity = zeros(N_sniff, win, nchannels);
+freq_sorted = zeros(N_sniff, win, nchannels);
 
 for ch = 1:nchannels
     
-    % Get row means and concatenate
-    row_means = mean(sniff_activity(:,:,ch), 2);
-    data_with_means = [sniff_activity(:,:,ch), row_means];
+    n_peaks = zeros(N_sniff, 1);
     
-    % Sort by the mean column
-    sorted_data_with_means = sortrows(data_with_means, size(A_with_means, 2));
+    for ii = 1:N_sniff
+        freq_test = smooth(sniff_activity(ii, :, ch), 20, 'sgolay');
+        [pk_test, loc_test] = findpeaks(freq_test, "MinPeakProminence", .5);
+        n_peaks(ii) = length(pk_test);
+    end
+
+    % Sort the vector and get the sorting indices
+    [~, sort_indices] = sort(n_peaks);
+
+    % Combine unique rows and frequencies
+    result = [sniff_activity(:,:,ch), sort_indices];
+
     
-    % Step 4: Remove the last column to get the sorted matrix
-    sorted_activity(:,:,ch) = sorted_data_with_means(:, 1:end-1);
+        
+    % Sort by frequency
+    sortedResult = sortrows(result, width(result));
+    
+    % Extract just the sorted unique rows
+    %sortedResult(:, end-1) = sortedResult(:, end);
+    sorted_activity(:,:,ch) = sortedResult(:, 1:end-1);
+
 end
 
 %% Plot
 % Create a new figure
 figure;
 
-% Loop through each channel to create subplots
 for ii = 1:nchannels
+    % Arrange the subplots in a 4x4 grid
     subplot(4, 4, ii); 
     
-    % Plot the data; assuming you're plotting as a 2D plot against time or some variable
+    % Plot the data;
     imagesc(sorted_activity(:,:,ii));
     
     % Add title to the subplot to indicate the channel number
     title(['Channel ' num2str(ii)]);
     axis square;  % Make the subplot square
+    
+    % Set x-tick positions
+    x_lim = xlim;  % get current x-axis limits
+    x_middle = mean(x_lim);  % Calculate the middle point of x-axis
+    xticks([x_middle - 500, x_middle, x_middle + 500]);
+    
+    % Set labels
+    yticklabels([])
+    yticks([])
+    xticklabels({'-500', '0', '500'});
 end
 
 
