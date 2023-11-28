@@ -2,7 +2,7 @@
 
 win = 1000; % Set window size
 N_sniff = 512;  % Set number of sniffs to look at
-beg = 5;
+beg = 5000;
 loc_set = locs(beg:N_sniff+beg-1); % Pull out N_sniffs starting at idx 5
 
 % Create windows based on locs
